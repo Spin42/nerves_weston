@@ -6,10 +6,6 @@ defmodule NervesWeston do
       required: true,
       type: :atom
     ],
-    tty: [
-      required: true,
-      type: :non_neg_integer
-    ],
     xdg_runtime_dir: [
       required: true,
       type: :string
@@ -35,14 +31,15 @@ defmodule NervesWeston do
 
   @impl Supervisor
   def init(opts) do
-    args = ["--tty=#{opts[:tty]}" | opts[:cli_args]]
+    args = opts[:cli_args]
     env = [{"XDG_RUNTIME_DIR", opts[:xdg_runtime_dir]}]
 
     setup_xdg_runtime_dir(opts[:xdg_runtime_dir])
     setup_udev()
 
     children = [
-      {MuonTrap.Daemon, ["weston", args, [{:env, env} | opts[:daemon_opts]]]}
+      Supervisor.child_spec({MuonTrap.Daemon, ["seatd", []]}, id: :seatd),
+      Supervisor.child_spec({MuonTrap.Daemon, ["weston", args, [{:env, env} | opts[:daemon_opts]]]}, id: :weston)
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
